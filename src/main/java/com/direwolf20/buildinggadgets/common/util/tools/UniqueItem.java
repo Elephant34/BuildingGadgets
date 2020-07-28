@@ -15,6 +15,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Objects;
 
+// Todo: remove
+@Deprecated
 public final class UniqueItem { //TODO @since 1.13.x can this be replaced with Item?
     public static final UniqueItem AIR = new UniqueItem(Items.AIR);
     private final Item item;

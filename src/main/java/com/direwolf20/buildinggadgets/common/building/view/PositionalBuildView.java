@@ -95,6 +95,10 @@ public final class PositionalBuildView implements IBuildView {
         return context;
     }
 
+    public Region getBoundingBox() {
+        return boundingBox;
+    }
+
     public ImmutableMap<BlockPos, BlockData> getMap() {
         return ImmutableMap.copyOf(map);
     }

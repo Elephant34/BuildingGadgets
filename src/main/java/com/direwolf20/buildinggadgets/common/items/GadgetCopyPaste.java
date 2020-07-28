@@ -4,10 +4,7 @@ import com.direwolf20.buildinggadgets.client.screen.GuiMod;
 import com.direwolf20.buildinggadgets.common.BuildingGadgets;
 import com.direwolf20.buildinggadgets.common.building.Region;
 import com.direwolf20.buildinggadgets.common.building.PlacementChecker;
-import com.direwolf20.buildinggadgets.common.building.view.IBuildContext;
-import com.direwolf20.buildinggadgets.common.building.view.IBuildView;
-import com.direwolf20.buildinggadgets.common.building.view.BuildContext;
-import com.direwolf20.buildinggadgets.common.building.view.WorldBuildView;
+import com.direwolf20.buildinggadgets.common.building.view.*;
 import com.direwolf20.buildinggadgets.common.capability.CapabilityTemplate;
 import com.direwolf20.buildinggadgets.common.capability.provider.TemplateKeyProvider;
 import com.direwolf20.buildinggadgets.common.commands.ForceUnloadedCommand;
@@ -307,8 +304,8 @@ public class GadgetCopyPaste extends AbstractGadget {
         player.setActiveHand(hand);
         BlockPos posLookingAt = VectorHelper.getPosLookingAt(player, stack);
         if (! world.isRemote()) {
-            if (player.isSneaking() && GadgetUtils.setRemoteInventory(stack, player, world, posLookingAt, false) == ActionResultType.SUCCESS)
-                return new ActionResult<>(ActionResultType.SUCCESS, stack);
+//            if (player.isSneaking() && GadgetUtils.setRemoteInventory(stack, player, world, posLookingAt, false) == ActionResultType.SUCCESS)
+//                return new ActionResult<>(ActionResultType.SUCCESS, stack);
 
             if (getToolMode(stack) == ToolMode.COPY) {
                 if (world.getBlockState(posLookingAt) != Blocks.AIR.getDefaultState())
@@ -316,11 +313,10 @@ public class GadgetCopyPaste extends AbstractGadget {
             } else if (getToolMode(stack) == ToolMode.PASTE && ! player.isSneaking())
                 getActivePos(player, stack).ifPresent(pos -> build(stack, world, player, pos));
         } else {
-            if (player.isSneaking()) {
-                if (Screen.hasControlDown())
-                    PacketHandler.sendToServer(new PacketBindTool());
-                else if (GadgetUtils.getRemoteInventory(posLookingAt, world, NetworkIO.Operation.EXTRACT) != null)
-                    return new ActionResult<>(ActionResultType.SUCCESS, stack);
+            if (player.isSneaking() && Screen.hasControlDown()) {
+                PacketHandler.sendToServer(new PacketBindTool());
+//                else if (GadgetUtils.getRemoteInventory(posLookingAt, world, NetworkIO.Operation.EXTRACT) != null)
+//                    return new ActionResult<>(ActionResultType.SUCCESS, stack);
             }
             if (getToolMode(stack) == ToolMode.COPY) {
                 if (player.isSneaking() && world.getBlockState(posLookingAt) == Blocks.AIR.getDefaultState())
@@ -412,7 +408,7 @@ public class GadgetCopyPaste extends AbstractGadget {
                         .stack(stack)
                         .player(player)
                         .build(world);
-                IBuildView view = template.createViewInContext(buildContext);
+                PositionalBuildView view = template.createViewInContext(buildContext);
                 view.translateTo(pos);
                 if (! checkPlacement(world, player, view.getBoundingBox()))
                     return;
@@ -443,7 +439,7 @@ public class GadgetCopyPaste extends AbstractGadget {
         return true;
     }
 
-    private void schedulePlacement(ItemStack stack, IBuildView view, PlayerEntity player) {
+    private void schedulePlacement(ItemStack stack, PositionalBuildView view, PlayerEntity player) {
         IItemIndex index = InventoryHelper.index(stack, player);
         int energyCost = getEnergyCost(stack);
         boolean overwrite = Config.GENERAL.allowOverwriteBlocks.get();

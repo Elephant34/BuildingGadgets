@@ -188,14 +188,16 @@ public class GadgetUtils {
         return res;
     }
 
-    public static void bindToolToTE(ItemStack stack, PlayerEntity player) {
-        World world = player.world;
-        BlockRayTraceResult lookingAt = VectorHelper.getLookingAt(player, AbstractGadget.shouldRayTraceFluid(stack) ? RayTraceContext.FluidMode.ANY : RayTraceContext.FluidMode.NONE);
-        if (world.getBlockState(VectorHelper.getLookingAt(player, stack).getPos()) == Blocks.AIR.getDefaultState())
-            return;
+// todo: remove 1.16 + ;
 
-        ActionResultType result = setRemoteInventory(stack, player, world, lookingAt.getPos(), true);
-    }
+//    public static void bindToolToTE(ItemStack stack, PlayerEntity player) {
+//        World world = player.world;
+//        BlockRayTraceResult lookingAt = VectorHelper.getLookingAt(player, AbstractGadget.shouldRayTraceFluid(stack) ? RayTraceContext.FluidMode.ANY : RayTraceContext.FluidMode.NONE);
+//        if (world.getBlockState(VectorHelper.getLookingAt(player, stack).getPos()) == Blocks.AIR.getDefaultState())
+//            return;
+//
+//        ActionResultType result = setRemoteInventory(stack, player, world, lookingAt.getPos(), true);
+//    }
 
     public static ActionResult<Block> selectBlock(ItemStack stack, PlayerEntity player) {
         // Used to find which block the player is looking at, and store it in NBT on the tool.
@@ -219,22 +221,24 @@ public class GadgetUtils {
         return ActionResult.success(state.getBlock());
     }
 
-    public static ActionResultType setRemoteInventory(ItemStack stack, PlayerEntity player, World world, BlockPos pos, boolean setTool) {
-        TileEntity te = world.getTileEntity(pos);
-        if (te == null)
-            return ActionResultType.PASS;
+// todo: remove 1.16 + ;
 
-        if (setTool && te instanceof ConstructionBlockTileEntity) {
-            ((ConstructionBlockTileEntity) te).getConstructionBlockData();
-            setToolBlock(stack, ((ConstructionBlockTileEntity) te).getActualBlockData());
-            setToolActualBlock(stack, ((ConstructionBlockTileEntity) te).getActualBlockData());
-            return ActionResultType.SUCCESS;
-        }
-        if (setRemoteInventory(player, stack, pos, world))
-            return ActionResultType.SUCCESS;
-
-        return ActionResultType.FAIL;
-    }
+//    public static ActionResultType setRemoteInventory(ItemStack stack, PlayerEntity player, World world, BlockPos pos, boolean setTool) {
+//        TileEntity te = world.getTileEntity(pos);
+//        if (te == null)
+//            return ActionResultType.PASS;
+//
+//        if (setTool && te instanceof ConstructionBlockTileEntity) {
+//            ((ConstructionBlockTileEntity) te).getConstructionBlockData();
+//            setToolBlock(stack, ((ConstructionBlockTileEntity) te).getActualBlockData());
+//            setToolActualBlock(stack, ((ConstructionBlockTileEntity) te).getActualBlockData());
+//            return ActionResultType.SUCCESS;
+//        }
+//        if (setRemoteInventory(player, stack, pos, world))
+//            return ActionResultType.SUCCESS;
+//
+//        return ActionResultType.FAIL;
+//    }
 
     public static boolean anchorBlocks(PlayerEntity player, ItemStack stack) {
         //Stores the current visual blocks in NBT on the tool, so the player can look around without moving the visual render
@@ -268,65 +272,70 @@ public class GadgetUtils {
         return true;
     }
 
-    public static boolean setRemoteInventory(PlayerEntity player, ItemStack tool, BlockPos pos, World world) {
-        if (getRemoteInventory(pos, player.world.getDimensionRegistryKey().getRegistryName(), world) != null) {
-            boolean same = pos.equals(getPOSFromNBT(tool, NBTKeys.REMOTE_INVENTORY_POS));
-            writePOSToNBT(tool, same ? null : pos, NBTKeys.REMOTE_INVENTORY_POS, player.world.getDimensionRegistryKey());
-            player.sendStatusMessage(new StringTextComponent(TextFormatting.AQUA + new TranslationTextComponent(same ? MessageTranslation.UNBOUND_TO_TILE.getTranslationKey() : MessageTranslation.BOUND_TO_TILE.getTranslationKey()).getUnformattedComponentText()), true);
-            return true;
-        }
-        return false;
-    }
+// todo: remove 1.16 + ;
 
-    @Nullable
-    public static IItemHandler getRemoteInventory(ItemStack tool, World world) {
-         return getRemoteInventory(tool, world, NetworkIO.Operation.EXTRACT);
+//    public static boolean setRemoteInventory(PlayerEntity player, ItemStack tool, BlockPos pos, World world) {
+//        if (getRemoteInventory(pos, player.world.getDimensionRegistryKey().getRegistryName(), world) != null) {
+//            boolean same = pos.equals(getPOSFromNBT(tool, NBTKeys.REMOTE_INVENTORY_POS));
+//            writePOSToNBT(tool, same ? null : pos, NBTKeys.REMOTE_INVENTORY_POS, player.world.getDimensionRegistryKey());
+//            player.sendStatusMessage(new StringTextComponent(TextFormatting.AQUA + new TranslationTextComponent(same ? MessageTranslation.UNBOUND_TO_TILE.getTranslationKey() : MessageTranslation.BOUND_TO_TILE.getTranslationKey()).getUnformattedComponentText()), true);
+//            return true;
+//        }
+//        return false;
+//    }
 
-    }
-    @Nullable
-    public static IItemHandler getRemoteInventory(ItemStack tool, World world, NetworkIO.Operation operation) {
-        ResourceLocation dim = getDIMFromNBT(tool, NBTKeys.REMOTE_INVENTORY_POS);
-        if (dim == null) return null;
-        BlockPos pos = getPOSFromNBT(tool, NBTKeys.REMOTE_INVENTORY_POS);
-        return pos == null ? null : getRemoteInventory(pos, dim, world /*, operation*/);
-    }
+// todo: remove 1.16 + ;
 
-    @Nullable
-    public static IItemHandler getRemoteInventory(BlockPos pos, ResourceLocation dim, World world) {
-        return getRemoteInventory(pos, dim, world, NetworkIO.Operation.EXTRACT);
-    }
-
-    @Nullable
-    public static IItemHandler getRemoteInventory(BlockPos pos, ResourceLocation dimName, World world, NetworkIO.Operation operation) {
-        MinecraftServer server = world.getServer();
-
-        if (server == null) {
-            return null;
-        }
-
-        RegistryKey<World> dimReg = RegistryKey.of(Registry.field_239699_ae_, dimName);
-        World worldServer = server.getWorld(dimReg);
-        if (worldServer == null) {
-            return null;
-        }
-
-        return getRemoteInventory(pos, worldServer, operation);
-    }
-
-    @Nullable
-    public static IItemHandler getRemoteInventory(BlockPos pos, World world, NetworkIO.Operation operation) {
-
-        TileEntity te = world.getTileEntity(pos);
-        if (te == null) return null;
-        //IItemHandler network = RefinedStorage.getWrappedNetwork(te, operation);
-        //if (network != null) return network;
-
-        LazyOptional<IItemHandler> cap = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
-        if( !cap.isPresent() )
-            return null;
-
-        return cap.orElseThrow(CapabilityNotPresentException::new);
-    }
+//    @Nullable
+//    public static IItemHandler getRemoteInventory(ItemStack tool, World world) {
+//         return getRemoteInventory(tool, world, NetworkIO.Operation.EXTRACT);
+//
+//    }
+//
+//    @Nullable
+//    public static IItemHandler getRemoteInventory(ItemStack tool, World world, NetworkIO.Operation operation) {
+//        ResourceLocation dim = getDIMFromNBT(tool, NBTKeys.REMOTE_INVENTORY_POS);
+//        if (dim == null) return null;
+//        BlockPos pos = getPOSFromNBT(tool, NBTKeys.REMOTE_INVENTORY_POS);
+//        return pos == null ? null : getRemoteInventory(pos, dim, world /*, operation*/);
+//    }
+//
+//    @Nullable
+//    public static IItemHandler getRemoteInventory(BlockPos pos, ResourceLocation dim, World world) {
+//        return getRemoteInventory(pos, dim, world, NetworkIO.Operation.EXTRACT);
+//    }
+//
+//    @Nullable
+//    public static IItemHandler getRemoteInventory(BlockPos pos, ResourceLocation dimName, World world, NetworkIO.Operation operation) {
+//        MinecraftServer server = world.getServer();
+//
+//        if (server == null) {
+//            return null;
+//        }
+//
+//        RegistryKey<World> dimReg = RegistryKey.of(Registry.field_239699_ae_, dimName);
+//        World worldServer = server.getWorld(dimReg);
+//        if (worldServer == null) {
+//            return null;
+//        }
+//
+//        return getRemoteInventory(pos, worldServer, operation);
+//    }
+//
+//    @Nullable
+//    public static IItemHandler getRemoteInventory(BlockPos pos, World world, NetworkIO.Operation operation) {
+//
+//        TileEntity te = world.getTileEntity(pos);
+//        if (te == null) return null;
+//        //IItemHandler network = RefinedStorage.getWrappedNetwork(te, operation);
+//        //if (network != null) return network;
+//
+//        LazyOptional<IItemHandler> cap = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
+//        if( !cap.isPresent() )
+//            return null;
+//
+//        return cap.orElseThrow(CapabilityNotPresentException::new);
+//    }
 
     public static String withSuffix(int count) {
         if (count < 1000) return "" + count;
@@ -350,22 +359,22 @@ public class GadgetUtils {
         stack.setTag(tagCompound);
     }
 
-    public static void writePOSToNBT(ItemStack stack, @Nullable BlockPos pos, String tagName, RegistryKey<DimensionType> dimension) {
-        CompoundNBT tagCompound = stack.getTag();
-        if (tagCompound == null) {
-            tagCompound = new CompoundNBT();
-        }
-        if (pos == null) {
-            tagCompound.get(tagName);
-            tagCompound.remove(tagName);
-            stack.setTag(tagCompound);
-            return;
-        }
-        CompoundNBT posTag = NBTUtil.writeBlockPos(pos);
-        posTag.putString(NBTKeys.GADGET_DIM, dimension.getRegistryName().toString());
-        tagCompound.put(tagName, posTag);
-        stack.setTag(tagCompound);
-    }
+//    public static void writePOSToNBT(ItemStack stack, @Nullable BlockPos pos, String tagName, RegistryKey<DimensionType> dimension) {
+//        CompoundNBT tagCompound = stack.getTag();
+//        if (tagCompound == null) {
+//            tagCompound = new CompoundNBT();
+//        }
+//        if (pos == null) {
+//            tagCompound.get(tagName);
+//            tagCompound.remove(tagName);
+//            stack.setTag(tagCompound);
+//            return;
+//        }
+//        CompoundNBT posTag = NBTUtil.writeBlockPos(pos);
+//        posTag.putString(NBTKeys.GADGET_DIM, dimension.getRegistryName().toString());
+//        tagCompound.put(tagName, posTag);
+//        stack.setTag(tagCompound);
+//    }
 
 
     @Nullable

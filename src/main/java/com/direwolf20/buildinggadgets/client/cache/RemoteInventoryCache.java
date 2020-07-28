@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+// todo: remove, hardly used at all.
 public class RemoteInventoryCache {
     private boolean isCopyPaste, forceUpdate;
     private Pair<ResourceLocation, BlockPos> locCached;

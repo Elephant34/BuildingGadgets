@@ -2,11 +2,15 @@ package com.direwolf20.buildinggadgets.client.renders;
 
 import com.direwolf20.buildinggadgets.client.cache.RemoteInventoryCache;
 import com.direwolf20.buildinggadgets.client.renderer.OurRenderTypes;
+import com.direwolf20.buildinggadgets.common.inv.LinkedInventory;
+import com.direwolf20.buildinggadgets.common.items.AbstractGadget;
 import com.direwolf20.buildinggadgets.common.util.GadgetUtils;
 import com.direwolf20.buildinggadgets.common.util.ref.NBTKeys;
 import com.direwolf20.buildinggadgets.common.util.tools.UniqueItem;
 import com.direwolf20.buildinggadgets.common.world.MockBuilderWorld;
 import com.direwolf20.buildinggadgets.common.world.MockTileEntityRenderWorld;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Multiset;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -30,9 +34,13 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public abstract class BaseRenderer {
     public static final BlockState AIR = Blocks.AIR.getDefaultState();
@@ -43,29 +51,33 @@ public abstract class BaseRenderer {
 
     private static RemoteInventoryCache cacheInventory = new RemoteInventoryCache(false);
 
+    // Holds a cache based on the item you're holding so we don't have to fetch / read the nbt so often.
+    private static final Cache<ItemStack, Optional<Pair<RegistryKey<DimensionType>, BlockPos>>> linkCache
+            = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.SECONDS).build();
+
     public void render(RenderWorldLastEvent evt, PlayerEntity player, ItemStack heldItem) {
         // This is necessary to prevent issues with not rendering the overlay's at all (when Botania being present) - See #329 for more information
         bindBlocks();
 
-        if( this.isLinkable() )
-            BaseRenderer.renderLinkedInventoryOutline(evt, heldItem, player);
+        if( this.isLinkable() ) {
+            try {
+                linkCache
+                        .get(heldItem, () -> LinkedInventory.get(heldItem))
+                        .ifPresent(e -> renderLinkedInventoryOutline(evt, player, e));
+            } catch (ExecutionException ignored) {}
+        }
     }
 
     private void bindBlocks() {
         getMc().getTextureManager().bindTexture(PlayerContainer.BLOCK_ATLAS_TEXTURE);
     }
 
-    private static void renderLinkedInventoryOutline(RenderWorldLastEvent evt, ItemStack item, PlayerEntity player) {
+    private static void renderLinkedInventoryOutline(RenderWorldLastEvent evt, PlayerEntity player, Pair<RegistryKey<DimensionType>, BlockPos> linkData) {
         // This is problematic as you use REMOTE_INVENTORY_POS to get the dimension instead of REMOTE_INVENTORY_DIM
-        ResourceLocation dim = GadgetUtils.getDIMFromNBT(item, NBTKeys.REMOTE_INVENTORY_POS);
-        BlockPos pos = GadgetUtils.getPOSFromNBT(item, NBTKeys.REMOTE_INVENTORY_POS);
-
-        if (dim == null || pos == null)
+        if (player.world.getDimensionRegistryKey() != linkData.getKey())
             return;
 
-        if (player.world.getDimensionRegistryKey().getRegistryName() != dim)
-            return;
-
+        BlockPos pos = linkData.getValue();
         Vector3d renderPos = getMc().gameRenderer.getActiveRenderInfo().getProjectedView()
                 .subtract(pos.getX(), pos.getY(), pos.getZ())
                 .add(.005f, .005f, .005f);

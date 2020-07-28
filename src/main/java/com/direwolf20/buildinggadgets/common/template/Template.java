@@ -89,7 +89,7 @@ public final class Template {
         return header;
     }
 
-    public IBuildView createViewInContext(IBuildContext context) {
+    public PositionalBuildView createViewInContext(IBuildContext context) {
         return PositionalBuildView.createUnsafe(context, map, header.getBoundingBox());
     }
 
