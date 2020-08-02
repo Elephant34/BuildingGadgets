@@ -1,9 +1,6 @@
 package com.direwolf20.buildinggadgets.common.world;
 
 import com.direwolf20.buildinggadgets.common.BuildingGadgets;
-import com.direwolf20.buildinggadgets.common.building.BlockData;
-import com.direwolf20.buildinggadgets.common.building.view.IBuildContext;
-import com.direwolf20.buildinggadgets.common.building.view.BuildContext;
 import com.google.common.base.Preconditions;
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.Block;
@@ -35,7 +32,6 @@ import net.minecraft.world.storage.IWorldInfo;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.Map.Entry;
@@ -55,14 +51,6 @@ public class MockDelegationWorld implements IWorld {
         return Collections.unmodifiableSet(posToBlock.entrySet());
     }
 
-    public void addBlock(@Nonnull BlockPos pos, BlockData data) {
-        addBlock(null, pos, data);
-    }
-
-    public void addBlock(@Nullable IBuildContext context, @Nonnull BlockPos pos, BlockData data) {
-        if (data != null)
-            data.placeIn(BuildContext.builderOf(context).build(this.getWorld()), pos);
-    }
 
     public IWorld getDelegate() {
         return delegate;

@@ -60,8 +60,7 @@ public class BuildRender extends BaseRenderer {
         if( (player.world.isAirBlock(lookingAt.getPos()) && !anchor.isPresent()) || startBlock == DEFAULT_EFFECT_BLOCK )
             return;
 
-        BlockData data = getToolBlock(heldItem);
-        BlockState renderBlockState = data.getState();
+        BlockState renderBlockState = getToolBlock(heldItem);
         if (renderBlockState == BaseRenderer.AIR)
             return;
 
@@ -116,33 +115,34 @@ public class BuildRender extends BaseRenderer {
             buffer.draw(); // @mcp: finish (mcp) = draw (yarn)
         }
 
+        // todo: add inventory checking back
         // Don't even waste the time checking to see if we have the right energy, items, etc for creative mode
-        if (!player.isCreative()) {
-            IVertexBuilder builder;
-
-            // Figure out how many of the block we're rendering we have in the inventory of the player.
-            IItemIndex index = new RecordingItemIndex(InventoryHelper.index(heldItem, player));
-            MaterialList materials = data.getRequiredItems(new BuildContext(player.world, player, heldItem), null, null);
-            int hasEnergy = getEnergy(player, heldItem);
-
-            LazyOptional<IEnergyStorage> energyCap = heldItem.getCapability(CapabilityEnergy.ENERGY);
-
-            for (BlockPos coordinate : coordinates) { //Now run through the UNSORTED list of coords, to show which blocks won't place if you don't have enough of them.
-                if (energyCap.isPresent())
-                    hasEnergy -= ((AbstractGadget) heldItem.getItem()).getEnergyCost(heldItem);
-
-                builder = buffer.getBuffer(OurRenderTypes.MissingBlockOverlay);
-                MatchResult match = index.tryMatch(materials);
-                if (!match.isSuccess())
-                    match = index.tryMatch(InventoryHelper.PASTE_LIST);
-                if (!match.isSuccess() || hasEnergy < 0) {
-                    renderMissingBlock(matrix.peek().getModel(), builder, coordinate);
-                } else {
-                    index.applyMatch(match); //notify the recording index that this counts
-                    renderBoxSolid(matrix.peek().getModel(), builder, coordinate, .97f, 1f, .99f, .1f);
-                }
-            }
-        }
+//        if (!player.isCreative()) {
+//            IVertexBuilder builder;
+//
+//            // Figure out how many of the block we're rendering we have in the inventory of the player.
+//            IItemIndex index = new RecordingItemIndex(InventoryHelper.index(heldItem, player));
+//            MaterialList materials = data.getRequiredItems(new BuildContext(player.world, player, heldItem), null, null);
+//            int hasEnergy = getEnergy(player, heldItem);
+//
+//            LazyOptional<IEnergyStorage> energyCap = heldItem.getCapability(CapabilityEnergy.ENERGY);
+//
+//            for (BlockPos coordinate : coordinates) { //Now run through the UNSORTED list of coords, to show which blocks won't place if you don't have enough of them.
+//                if (energyCap.isPresent())
+//                    hasEnergy -= ((AbstractGadget) heldItem.getItem()).getEnergyCost(heldItem);
+//
+//                builder = buffer.getBuffer(OurRenderTypes.MissingBlockOverlay);
+//                MatchResult match = index.tryMatch(materials);
+//                if (!match.isSuccess())
+//                    match = index.tryMatch(InventoryHelper.PASTE_LIST);
+//                if (!match.isSuccess() || hasEnergy < 0) {
+//                    renderMissingBlock(matrix.peek().getModel(), builder, coordinate);
+//                } else {
+//                    index.applyMatch(match); //notify the recording index that this counts
+//                    renderBoxSolid(matrix.peek().getModel(), builder, coordinate, .97f, 1f, .99f, .1f);
+//                }
+//            }
+//        }
 
         matrix.pop();
         RenderSystem.disableDepthTest();

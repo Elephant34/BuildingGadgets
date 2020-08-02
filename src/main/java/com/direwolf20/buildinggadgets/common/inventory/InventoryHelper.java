@@ -67,9 +67,9 @@ public class InventoryHelper {
 
     static List<IInsertProvider> indexInsertProviders(ItemStack tool, PlayerEntity player) {
         ImmutableList.Builder<IInsertProvider> builder = ImmutableList.builder();
-        IItemHandler remoteInv = GadgetUtils.getRemoteInventory(tool, player.world);
-        if (remoteInv != null)
-            builder.add(new HandlerInsertProvider(remoteInv));
+//        IItemHandler remoteInv = GadgetUtils.getRemoteInventory(tool, player.world);
+//        if (remoteInv != null)
+//            builder.add(new HandlerInsertProvider(remoteInv));
         builder.add(new PlayerInventoryInsertProvider(player));
         return builder.build();
     }
@@ -85,7 +85,7 @@ public class InventoryHelper {
 
     static List<IItemHandler> getHandlers(ItemStack stack, PlayerEntity player) {
         List<IItemHandler> handlers = new ArrayList<>();
-        handlers.add(GadgetUtils.getRemoteInventory(stack, player.world));
+//        handlers.add(GadgetUtils.getRemoteInventory(stack, player.world));
         player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).ifPresent(handlers::add);
         return handlers;
     }
@@ -123,7 +123,7 @@ public class InventoryHelper {
 
         //Try to insert into the remote inventory.
         ItemStack tool = AbstractGadget.getGadget(player);
-        IItemHandler remoteInventory = GadgetUtils.getRemoteInventory(tool,world.getWorld());
+        IItemHandler remoteInventory = null;// GadgetUtils.getRemoteInventory(tool,world.getWorld());
         if (remoteInventory != null) {
             for (int i = 0; i < remoteInventory.getSlots(); i++) {
                 ItemStack containerItem = remoteInventory.getStackInSlot(i);

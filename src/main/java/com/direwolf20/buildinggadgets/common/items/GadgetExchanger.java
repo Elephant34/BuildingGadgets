@@ -140,7 +140,7 @@ public class GadgetExchanger extends AbstractGadget {
                 .setStyle(Styles.AQUA));
 
         tooltip.add(TooltipTranslation.GADGET_BLOCK
-                .componentTranslation(LangUtil.getFormattedBlockName(getToolBlock(stack).getState()))
+                .componentTranslation(LangUtil.getFormattedBlockName(getToolBlock(stack)))
                             .setStyle(Styles.DK_GREEN));
 
         int range = getToolRange(stack);
@@ -205,7 +205,7 @@ public class GadgetExchanger extends AbstractGadget {
         if (heldItem.isEmpty())
             return false;
 
-        BlockData blockData = getToolBlock(heldItem);
+        BlockState blockState = getToolBlock(heldItem);
         List<BlockPos> coords = GadgetUtils.getAnchor(stack).orElse(new ArrayList<>());
 
         if (coords.size() == 0) { //If we don't have an anchor, build in the current spot
@@ -215,7 +215,7 @@ public class GadgetExchanger extends AbstractGadget {
             coords = getToolMode(stack).getMode().getCollection(
                     new AbstractMode.UseContext(
                             world,
-                            blockData.getState(),
+                            blockState,
                             lookingAt.getPos(),
                             heldItem,
                             sideHit), player
@@ -226,53 +226,48 @@ public class GadgetExchanger extends AbstractGadget {
         Set<BlockPos> coordinates = new HashSet<>(coords);
 
         Undo.Builder builder = Undo.builder();
-        IItemIndex index = InventoryHelper.index(stack, player);
-        if (blockData.getState() != Blocks.AIR.getDefaultState()) {  //Don't attempt a build if a block is not chosen -- Typically only happens on a new tool.
+//        IItemIndex index = InventoryHelper.index(stack, player);
+        if (blockState != Blocks.AIR.getDefaultState()) {  //Don't attempt a build if a block is not chosen -- Typically only happens on a new tool.
             //TODO replace fakeWorld
-            fakeWorld.setWorldAndState(player.world, blockData.getState(), coordinates); // Initialize the fake world's blocks
+            fakeWorld.setWorldAndState(player.world, blockState, coordinates); // Initialize the fake world's blocks
             for (BlockPos coordinate : coords) {
                 //Get the extended block state in the fake world
                 //Disabled to fix Chisel
                 //state = state.getBlock().getExtendedState(state, fakeWorld, coordinate);
-                exchangeBlock(world, player, index, builder, coordinate, blockData);
+                exchangeBlock(world, player, builder, coordinate, blockState);
             }
         }
         pushUndo(stack, builder.build(world));
         return true;
     }
 
-    private boolean exchangeBlock(ServerWorld world, ServerPlayerEntity player, IItemIndex index, Undo.Builder builder, BlockPos pos, BlockData setBlock) {
+    private boolean exchangeBlock(ServerWorld world, ServerPlayerEntity player, Undo.Builder builder, BlockPos pos, BlockState setBlock) {
         BlockState currentBlock = world.getBlockState(pos);
-        ITileEntityData data;
-        TileEntity te = world.getTileEntity(pos);
-        if (te instanceof ConstructionBlockTileEntity) {
-            data = ((ConstructionBlockTileEntity) te).getConstructionBlockData().getTileData();
-            currentBlock = ((ConstructionBlockTileEntity) te).getConstructionBlockData().getState();
-        } else
-            data = TileSupport.createTileData(world, pos);
-        //ItemStack itemStack = setBlock.getBlock().getPickBlock(setBlock, null, world, pos, player);
+//        ITileEntityData data;
+//        TileEntity te = world.getTileEntity(pos);
+//        if (te instanceof ConstructionBlockTileEntity) {
+//            data = ((ConstructionBlockTileEntity) te).getConstructionBlockData().getTileData();
+//            currentBlock = ((ConstructionBlockTileEntity) te).getConstructionBlockData().getState();
+//        } else
+//            data = TileSupport.createTileData(world, pos);
+//        //ItemStack itemStack = setBlock.getBlock().getPickBlock(setBlock, null, world, pos, player);
 
         ItemStack tool = getGadget(player);
         if (tool.isEmpty())
             return false;
 
-        IBuildContext buildContext = BuildContext.builder()
-                .stack(tool)
-                .player(player)
-                .build(world);
-
-        MaterialList requiredItems = setBlock.getRequiredItems(buildContext, null, pos);
-        MatchResult match = index.tryMatch(requiredItems);
-        boolean useConstructionPaste = false;
-        if (! match.isSuccess()) {
-            if (setBlock.getState().hasTileEntity())
-                return false;
-            match = index.tryMatch(InventoryHelper.PASTE_LIST);
-            if (! match.isSuccess())
-                return false;
-            else
-                useConstructionPaste = true;
-        }
+//        MaterialList requiredItems = setBlock.getRequiredItems(BuildContext.builder().stack(tool).player(player).build(world), null, pos);
+//        MatchResult match = index.tryMatch(requiredItems);
+//        boolean useConstructionPaste = false;
+//        if (! match.isSuccess()) {
+//            if (setBlock.getState().hasTileEntity())
+//                return false;
+//            match = index.tryMatch(InventoryHelper.PASTE_LIST);
+//            if (! match.isSuccess())
+//                return false;
+//            else
+//                useConstructionPaste = true;
+//        }
 
         if (! player.isAllowEdit())
             return false;
@@ -293,22 +288,22 @@ public class GadgetExchanger extends AbstractGadget {
 
         this.applyDamage(tool, player);
 
-        if (index.applyMatch(match)) {
-            ImmutableMultiset<IUniqueObject<?>> usedItems = match.getChosenOption();
-
-            MaterialList materials = te instanceof ConstructionBlockTileEntity ? InventoryHelper.PASTE_LIST : data.getRequiredItems(
-                    buildContext,
-                    currentBlock,
-                    world.rayTraceBlocks(new RayTraceContext(player.getPositionVec(), Vector3d.of(pos), BlockMode.COLLIDER, FluidMode.NONE, player)),
-                    pos);
-
-            Iterator<ImmutableMultiset<IUniqueObject<?>>> it = materials.iterator();
-            ImmutableMultiset<IUniqueObject<?>> producedItems = it.hasNext() ? it.next() : ImmutableMultiset.of();
-            index.insert(producedItems);
-            builder.record(world, pos, setBlock, usedItems, producedItems);
-            EffectBlock.spawnEffectBlock(world, pos, setBlock, EffectBlock.Mode.REPLACE, useConstructionPaste);
-            return true;
-        }
+//        if (index.applyMatch(match)) {
+//            ImmutableMultiset<IUniqueObject<?>> usedItems = match.getChosenOption();
+//
+//            MaterialList materials = te instanceof ConstructionBlockTileEntity ? InventoryHelper.PASTE_LIST : data.getRequiredItems(
+//                    buildContext,
+//                    currentBlock,
+//                    world.rayTraceBlocks(new RayTraceContext(player.getPositionVec(), Vector3d.of(pos), BlockMode.COLLIDER, FluidMode.NONE, player)),
+//                    pos);
+//
+//            Iterator<ImmutableMultiset<IUniqueObject<?>>> it = materials.iterator();
+//            ImmutableMultiset<IUniqueObject<?>> producedItems = it.hasNext() ? it.next() : ImmutableMultiset.of();
+//            index.insert(producedItems);
+//            builder.record(world, pos, setBlock, usedItems, producedItems);
+//            EffectBlock.spawnEffectBlock(world, pos, setBlock, EffectBlock.Mode.REPLACE, useConstructionPaste);
+//            return true;
+//        }
         return false;
     }
 

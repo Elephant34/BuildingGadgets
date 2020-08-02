@@ -132,60 +132,29 @@ public class GadgetUtils {
         return MathHelper.clamp(tagCompound.getInt("range"), 1, 15);
     }
 
-    public static BlockData rotateOrMirrorBlock(PlayerEntity player, PacketRotateMirror.Operation operation, BlockData data) {
+    public static BlockState rotateOrMirrorBlock(PlayerEntity player, PacketRotateMirror.Operation operation, BlockState state) {
         if (operation == PacketRotateMirror.Operation.MIRROR)
-            return data.mirror(player.getHorizontalFacing().getAxis() == Axis.X ? Mirror.LEFT_RIGHT : Mirror.FRONT_BACK);
+            return state.mirror(player.getHorizontalFacing().getAxis() == Axis.X ? Mirror.LEFT_RIGHT : Mirror.FRONT_BACK);
 
-        return data.rotate(Rotation.CLOCKWISE_90);
+        return state.rotate(Rotation.CLOCKWISE_90);
     }
 
     public static void rotateOrMirrorToolBlock(ItemStack stack, PlayerEntity player, PacketRotateMirror.Operation operation) {
         setToolBlock(stack, rotateOrMirrorBlock(player, operation, getToolBlock(stack)));
-        setToolActualBlock(stack, rotateOrMirrorBlock(player, operation, getToolActualBlock(stack)));
+//        setToolActualBlock(stack, rotateOrMirrorBlock(player, operation, getToolActualBlock(stack)));
     }
 
-    private static void setToolBlock(ItemStack stack, @Nullable BlockData data) {
-        //Store the selected block in the tool's NBT
+    private static void setToolBlock(ItemStack stack, BlockState state) {
+        // Store the selected block in the tool's NBT
         CompoundNBT tagCompound = stack.getOrCreateTag();
-        if (data == null)
-            data = BlockData.AIR;
-
-        CompoundNBT stateTag = data.serialize(true);
-        tagCompound.put(NBTKeys.TE_CONSTRUCTION_STATE, stateTag);
-        stack.setTag(tagCompound);
-    }
-
-    private static void setToolActualBlock(ItemStack stack, @Nullable BlockData data) {
-        // Store the selected block actual state in the tool's NBT
-        CompoundNBT tagCompound = stack.getOrCreateTag();
-        if (data == null)
-            data = BlockData.AIR;
-
-        CompoundNBT dataTag = data.serialize(true);
-        tagCompound.put(NBTKeys.TE_CONSTRUCTION_STATE_ACTUAL, dataTag);
-        stack.setTag(tagCompound);
+        tagCompound.put("set_block", NBTUtil.writeBlockState(state));
     }
 
     @Nonnull
-    public static BlockData getToolBlock(ItemStack stack) {
+    public static BlockState getToolBlock(ItemStack stack) {
         CompoundNBT tagCompound = stack.getOrCreateTag();
-        BlockData res = BlockData.tryDeserialize(tagCompound.getCompound(NBTKeys.TE_CONSTRUCTION_STATE), true);
-        if (res == null) {
-            setToolActualBlock(stack, BlockData.AIR);
-            return BlockData.AIR;
-        }
-        return res;
-    }
 
-    @Nonnull
-    public static BlockData getToolActualBlock(ItemStack stack) {
-        CompoundNBT tagCompound = stack.getOrCreateTag();
-        BlockData res = BlockData.tryDeserialize(tagCompound.getCompound(NBTKeys.TE_CONSTRUCTION_STATE_ACTUAL), true);
-        if (res == null) {
-            setToolActualBlock(stack, BlockData.AIR);
-            return BlockData.AIR;
-        }
-        return res;
+        return NBTUtil.readBlockState(tagCompound.getCompound("set_block"));
     }
 
 // todo: remove 1.16 + ;
@@ -210,13 +179,14 @@ public class GadgetUtils {
         if (! ((AbstractGadget) stack.getItem()).isAllowedBlock(state.getBlock()) || state.getBlock() instanceof EffectBlock)
             return ActionResult.fail(state.getBlock());
 
-        Optional<BlockData> data = InventoryHelper.getSafeBlockData(player, lookingAt.getPos(), player.getActiveHand());
-        data.ifPresent(placeState -> {
-            BlockState actualState = placeState.getState(); //.getExtendedState(world, lookingAt.getPos()); 1.14 @todo: fix?
+        // todo: add the verification back
+//        Optional<BlockData> data = InventoryHelper.getSafeBlockData(player, lookingAt.getPos(), player.getActiveHand());
+//        data.ifPresent(placeState -> {
+//            BlockState actualState = placeState.getState(); //.getExtendedState(world, lookingAt.getPos()); 1.14 @todo: fix?
 
-            setToolBlock(stack, placeState);
-            setToolActualBlock(stack, new BlockData(actualState, placeState.getTileData()));
-        });
+            setToolBlock(stack, state);
+//            setToolActualBlock(stack, new BlockData(actualState, placeState.getTileData()));
+//        });
 
         return ActionResult.success(state.getBlock());
     }
@@ -259,8 +229,8 @@ public class GadgetUtils {
         if (player.world.isAirBlock(startBlock))
             return false;
 
-        BlockData blockData = getToolBlock(stack);
-        AbstractMode.UseContext context = new AbstractMode.UseContext(player.world, blockData.getState(), startBlock, stack, sideHit, stack.getItem() instanceof GadgetBuilding && GadgetBuilding.shouldPlaceAtop(stack));
+        BlockState blockData = getToolBlock(stack);
+        AbstractMode.UseContext context = new AbstractMode.UseContext(player.world, blockData, startBlock, stack, sideHit, stack.getItem() instanceof GadgetBuilding && GadgetBuilding.shouldPlaceAtop(stack));
 
         List<BlockPos> coords = stack.getItem() instanceof GadgetBuilding
                 ? GadgetBuilding.getToolMode(stack).getMode().getCollection(context, player)

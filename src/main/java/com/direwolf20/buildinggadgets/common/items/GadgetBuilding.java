@@ -30,6 +30,7 @@ import com.direwolf20.buildinggadgets.common.util.ref.Reference.BlockReference.T
 import com.direwolf20.buildinggadgets.common.world.MockBuilderWorld;
 import com.google.common.collect.ImmutableMultiset;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.ITooltipFlag;
@@ -119,7 +120,7 @@ public class GadgetBuilding extends AbstractGadget {
                 .setStyle(Styles.AQUA));
 
         tooltip.add(TooltipTranslation.GADGET_BLOCK
-                .componentTranslation(LangUtil.getFormattedBlockName(getToolBlock(stack).getState()))
+                .componentTranslation(LangUtil.getFormattedBlockName(getToolBlock(stack)))
                 .setStyle(Styles.DK_GREEN));
 
         int range = getToolRange(stack);
@@ -195,9 +196,12 @@ public class GadgetBuilding extends AbstractGadget {
         if (heldItem.isEmpty())
             return;
 
-        List<BlockPos> coords = GadgetUtils.getAnchor(heldItem).orElse(new ArrayList<>());
+        BlockState state = getToolBlock(heldItem);
+        if (state == Blocks.AIR.getDefaultState()) {
+            return;
+        }
 
-        BlockData blockData = getToolBlock(heldItem);
+        List<BlockPos> coords = GadgetUtils.getAnchor(heldItem).orElse(new ArrayList<>());
         if (coords.size() == 0) {  //If we don't have an anchor, build in the current spot
             BlockRayTraceResult lookingAt = VectorHelper.getLookingAt(player, stack);
             if (world.isAirBlock(lookingAt.getPos())) //If we aren't looking at anything, exit
@@ -205,29 +209,29 @@ public class GadgetBuilding extends AbstractGadget {
 
             Direction sideHit = lookingAt.getFace();
             coords = getToolMode(stack).getMode().getCollection(
-                    new AbstractMode.UseContext(world, blockData.getState(), lookingAt.getPos(), heldItem, sideHit, placeAtop(stack)),
+                    new AbstractMode.UseContext(world, state, lookingAt.getPos(), heldItem, sideHit, placeAtop(stack)),
                     player
             );
         }
-        else  //If we do have an anchor, erase it (Even if the build fails)
+        else  // If we do have an anchor, erase it (Even if the build fails)
             setAnchor(stack);
 
         Undo.Builder builder = Undo.builder();
-        IItemIndex index = InventoryHelper.index(stack, player);
-        if (blockData.getState() != Blocks.AIR.getDefaultState()) { //Don't attempt a build if a block is not chosen -- Typically only happens on a new tool.
-            //TODO replace with a better TileEntity supporting Fake IWorld
-            fakeWorld.setWorldAndState(player.world, blockData.getState(), coords); // Initialize the fake world's blocks
-            for (BlockPos coordinate : coords) {
-                //Get the extended block state in the fake world
-                //Disabled to fix Chisel
-                //state = state.getBlock().getExtendedState(state, fakeWorld, coordinate);
-                placeBlock(world, player, index, builder, coordinate, blockData);
-            }
+//        IItemIndex index = InventoryHelper.index(stack, player);
+
+        //TODO replace with a better TileEntity supporting Fake IWorld
+        fakeWorld.setWorldAndState(player.world, state, coords); // Initialize the fake world's blocks
+        for (BlockPos coordinate : coords) {
+            // Get the extended block state in the fake world
+            // Disabled to fix Chisel
+            // state = state.getBlock().getExtendedState(state, fakeWorld, coordinate);
+            placeBlock(world, player, builder, coordinate, state);
         }
+
         pushUndo(stack, builder.build(world));
     }
 
-    private void placeBlock(World world, ServerPlayerEntity player, IItemIndex index, Undo.Builder builder, BlockPos pos, BlockData setBlock) {
+    private void placeBlock(World world, ServerPlayerEntity player, Undo.Builder builder, BlockPos pos, BlockState setBlock) {
         if ((pos.getY() > world.getHeight() || pos.getY() < 0) || !player.isAllowEdit())
             return;
 
@@ -237,20 +241,20 @@ public class GadgetBuilding extends AbstractGadget {
 
         boolean useConstructionPaste = false;
 
-        IBuildContext buildContext = new BuildContext(world, player, heldItem);
-        MaterialList requiredItems = setBlock.getRequiredItems(buildContext, null, pos);
+//        IBuildContext buildContext = new BuildContext(world, player, heldItem);
+//        MaterialList requiredItems = setBlock.getRequiredItems(buildContext, null, pos);
 
-        // #majorcode
-        MatchResult match = index.tryMatch(requiredItems);
-        if (! match.isSuccess()) {
-            if (setBlock.getState().hasTileEntity())
-                return;
-            match = index.tryMatch(InventoryHelper.PASTE_LIST);
-            if (! match.isSuccess())
-                return;
-            else
-                useConstructionPaste = true;
-        }
+//        // #majorcode
+//        MatchResult match = index.tryMatch(requiredItems);
+//        if (! match.isSuccess()) {
+//            if (setBlock.getState().hasTileEntity())
+//                return;
+//            match = index.tryMatch(InventoryHelper.PASTE_LIST);
+//            if (! match.isSuccess())
+//                return;
+//            else
+//                useConstructionPaste = true;
+//        }
 
         BlockSnapshot blockSnapshot = BlockSnapshot.create(world, pos);
         if (ForgeEventFactory.onBlockPlace(player, blockSnapshot, Direction.UP) || ! world.isBlockModifiable(player, pos) || !this.canUse(heldItem, player))
@@ -258,11 +262,11 @@ public class GadgetBuilding extends AbstractGadget {
 
         this.applyDamage(heldItem, player);
 
-        if (index.applyMatch(match)) {
-            ImmutableMultiset<IUniqueObject<?>> usedItems = match.getChosenOption();
-            builder.record(world, pos, setBlock, usedItems, ImmutableMultiset.of());
-            EffectBlock.spawnEffectBlock(world, pos, setBlock, EffectBlock.Mode.PLACE, useConstructionPaste);
-        }
+//        if (index.applyMatch(match)) {
+//            ImmutableMultiset<IUniqueObject<?>> usedItems = match.getChosenOption();
+//            builder.record(world, pos, setBlock, usedItems, ImmutableMultiset.of());
+//            EffectBlock.spawnEffectBlock(world, pos, setBlock, EffectBlock.Mode.PLACE, useConstructionPaste);
+//        }
     }
 
     public static ItemStack getGadget(PlayerEntity player) {

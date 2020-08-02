@@ -25,6 +25,7 @@ public class OurEntities {
                 EntityType.Builder.<ConstructionBlockEntity>create(ConstructionBlockEntity::new, EntityClassification.MISC)
                         .setTrackingRange(64)
                         .setUpdateInterval(1)
+
                         .setShouldReceiveVelocityUpdates(false)
                         .setCustomClientFactory(((spawnEntity, world) -> new ConstructionBlockEntity(ConstructionBlockEntity.TYPE, world)))
                         .build("")
